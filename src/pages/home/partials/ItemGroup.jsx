@@ -235,12 +235,26 @@ export const ItemGroup = observer(
 			setIsLoading(false);
 
 			if (currentPriceHasError) {
+				notifications.show({
+					color: "red",
+					icon: <IconX />,
+					title: "Failed to fetch prices",
+					message: "Could not retrieve price data. Check your connection and try again.",
+					autoClose: 5000,
+				});
 				return;
 			}
 
 			_groupStore.setGroupPriceData({
 				currentPriceData,
 				priceHistoryData,
+			});
+
+			notifications.show({
+				color: "green",
+				icon: <IconCheck />,
+				title: "Prices updated",
+				autoClose: 3000,
 			});
 		}
 
