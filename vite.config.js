@@ -4,6 +4,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { BASENAME } from "./BASENAME";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // https://vitejs.dev/config/
 export default defineConfig({
 	resolve: {
@@ -13,13 +15,10 @@ export default defineConfig({
 			"@tabler/icons-react": "@tabler/icons-react/dist/esm/icons/index.mjs",
 		},
 	},
-	plugins: [
-		react(),
-		paraglide({
-			project: "./project.inlang", //Path to your inlang project
-			outdir: "./src/paraglide", //Where you want the generated files to be placed
-		}),
-	],
+	plugins: [react(), paraglide({
+        project: "./project.inlang", //Path to your inlang project
+        outdir: "./src/paraglide", //Where you want the generated files to be placed
+    }), cloudflare()],
 	base: BASENAME,
 	build: {
 		sourcemap: "inline", // Enable source maps for production build
