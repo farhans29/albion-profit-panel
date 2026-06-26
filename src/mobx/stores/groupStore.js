@@ -99,6 +99,10 @@ export class GroupStore {
 		this.tax = data?.tax ?? TAXES.sellOrderWithoutPremium;
 		this.location = data?.location ?? locations[0];
 		this.order = data?.order ?? 0;
+		/** @type {GroupPriceData[]} */
+		this.priceData = data?.priceData ?? [];
+		/** @type {PriceHistoryData[]} */
+		this.priceHistoryData = data?.priceHistoryData ?? [];
 
 		makeAutoObservable(this);
 	}

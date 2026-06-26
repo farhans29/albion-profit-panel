@@ -190,10 +190,18 @@ export const ItemGroup = observer(
 		const [isLoading, setIsLoading] = useState(false);
 		const [isLoadingComponents, setIsLoadingComponents] = useState(false);
 
+		const onUpdateRef = useRef(onUpdate);
+		useEffect(() => {
+			onUpdateRef.current = onUpdate;
+		});
+
 		useEffect(() => {
 			return () => {
 				if (saveTimeoutRef.current) {
 					clearTimeout(saveTimeoutRef.current);
+					const primitives = _groupStore.toPrimitives();
+					globalStore.getIndexedDb()?.add("groups", primitives);
+					onUpdateRef.current(primitives);
 				}
 			};
 		}, []);
@@ -628,7 +636,7 @@ function ComponentActions() {
 				<Card id="item-group-card" p="md">
 					{/* Header */}
 					<Group justify="space-between" align="center" mb="md" pb="sm"
-						style={{ borderBottom: "1px solid var(--mantine-color-dark-4)" }}
+						style={{ borderBottom: "1px solid var(--rpg-border-faint)" }}
 					>
 						<Group gap="xs">
 							<Badge

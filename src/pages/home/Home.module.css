@@ -2,12 +2,23 @@
 	height: 100vh;
 	overflow: hidden;
 	position: relative;
+	isolation: isolate;
 
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 
-	background-color: #141d28;
+	background-color: var(--rpg-body-bg);
+}
+
+/* Solid color layer sitting directly on top of the wallpaper */
+.mainContainer::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-color: var(--rpg-body-bg);
+	z-index: 0;
+	pointer-events: none;
 }
 
 /* Subtle CRT scanline overlay */
@@ -51,15 +62,14 @@
 	flex-wrap: wrap;
 	padding: 6px 16px;
 	gap: 10px;
-	background-color: rgba(20, 29, 40, 0.92);
-	backdrop-filter: blur(8px);
-	border-bottom: 1px solid #4a6a85;
+	background-color: var(--rpg-navbar-bg);
+	border-bottom: 2px solid var(--rpg-border-silver);
 }
 
 .navbarBrand {
 	font-family: "OrangeKid", "DOSVGA", monospace;
 	font-size: 16px;
-	color: #8aacc4;
+	color: var(--rpg-border-silver);
 	letter-spacing: 1px;
 	white-space: nowrap;
 	flex-shrink: 0;
@@ -68,7 +78,7 @@
 .navbarDivider {
 	width: 1px;
 	height: 28px;
-	background-color: #253545;
+	background-color: var(--rpg-border-faint);
 	flex-shrink: 0;
 }
 
@@ -86,8 +96,8 @@
 	flex-direction: column;
 	overflow: hidden;
 
-	border-right: 2px solid #4a6a85;
-	background-color: rgba(20, 29, 40, 0.9);
+	border-right: 2px solid var(--rpg-border-silver);
+	background-color: var(--rpg-sidebar-bg);
 }
 
 .leftContainerList {
@@ -99,7 +109,7 @@
 .leftContainerFooter {
 	flex-shrink: 0;
 	padding-top: 6px;
-	border-top: 1px solid #253545;
+	border-top: 1px solid var(--rpg-border-faint);
 }
 
 .leftContainerItem {
@@ -115,6 +125,7 @@
 	padding-left: 16px;
 	width: calc(100% - 450px);
 	min-width: 0;
+	background-color: var(--rpg-body-bg);
 }
 
 @media (max-width: 700px) {
@@ -125,7 +136,7 @@
 		height: auto;
 		max-height: 45vh;
 		border-right: none;
-		border-bottom: 2px solid #4a6a85;
+		border-bottom: 2px solid var(--rpg-border-steel);
 	}
 
 	.leftContainerList {
@@ -151,9 +162,9 @@
 
 /* Alternating table rows — stable with pinned @mantine/core 9.4.0 */
 :global(.m_b23fa0ef tbody tr:nth-child(even)) {
-	background-color: #213044;
+	background-color: var(--rpg-row-bg);
 }
 
 :global(.m_b23fa0ef[data-with-table-border]) {
-	border: 1px solid #4a6a85;
+	border: 1px solid var(--rpg-border-steel);
 }

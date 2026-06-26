@@ -213,13 +213,13 @@ export const ProductRow = observer(
 		}
 
 		const style = {
-			backgroundColor: "var(--mantine-color-dark-5)",
+			backgroundColor: "var(--rpg-deep-row-bg)",
 			opacity: item.isActive === false ? 0.6 : undefined,
 		};
 
 		if (isHighlighted) {
 			style.borderRadius = 4;
-			style.backgroundColor = "var(--mantine-color-dark-5)";
+			style.backgroundColor = "var(--rpg-deep-row-bg)";
 		}
 
 		const calculatedTotal = Math.round(

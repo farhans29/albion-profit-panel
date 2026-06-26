@@ -12,6 +12,18 @@ const RPG = {
 	textMuted: "#7a9ab8",
 };
 
+const RPG_LIGHT = {
+	bodyBg: "#d8e8f4",
+	panelBg: "#e8f2fa",
+	rowBg: "#ccdaea",
+	deepRowBg: "#beccde",
+	borderSilver: "#2c4a62",
+	borderSteel: "#4a6a85",
+	borderFaint: "#8aacc4",
+	textPrimary: "#0e1820",
+	textMuted: "#2c4a62",
+};
+
 const FONTS = {
 	sans:  '"LatoWiki", "Inter", system-ui, sans-serif',
 	mono:  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
@@ -20,7 +32,6 @@ const FONTS = {
 };
 
 export const theme = createTheme({
-	// ── Typography ──────────────────────────────────────────────────────────
 	fontFamily: FONTS.sans,
 	fontFamilyMonospace: FONTS.mono,
 	headings: {
@@ -28,26 +39,17 @@ export const theme = createTheme({
 		fontWeight: "700",
 	},
 
-	// ── Shape — sharp corners everywhere ────────────────────────────────────
 	defaultRadius: 0,
-	radius: {
-		xs: rem(0),
-		sm: rem(0),
-		md: rem(0),
-		lg: rem(0),
-		xl: rem(0),
-	},
+	radius: { xs: rem(0), sm: rem(0), md: rem(0), lg: rem(0), xl: rem(0) },
 
-	// Hard pixel shadows — no blur
 	shadows: {
-		xs: `1px 1px 0px ${RPG.borderSteel}`,
-		sm: `2px 2px 0px ${RPG.borderSteel}`,
-		md: `3px 3px 0px ${RPG.borderSteel}`,
-		lg: `4px 4px 0px ${RPG.borderSteel}`,
-		xl: `5px 5px 0px ${RPG.borderSteel}`,
+		xs: `1px 1px 0px var(--rpg-border-steel)`,
+		sm: `2px 2px 0px var(--rpg-border-steel)`,
+		md: `3px 3px 0px var(--rpg-border-steel)`,
+		lg: `4px 4px 0px var(--rpg-border-steel)`,
+		xl: `5px 5px 0px var(--rpg-border-steel)`,
 	},
 
-	// ── Spacing (preserve existing tokens) ──────────────────────────────────
 	spacing: {
 		xxxs: rem(6),
 		xxs: rem(8),
@@ -58,9 +60,8 @@ export const theme = createTheme({
 		xl: rem(32),
 	},
 
-	// ── Colors ───────────────────────────────────────────────────────────────
 	primaryColor: "silver",
-	primaryShade: { light: 4, dark: 4 },
+	primaryShade: { light: 7, dark: 4 },
 
 	colors: {
 		silver: [
@@ -68,26 +69,24 @@ export const theme = createTheme({
 			"#d8e4ec",
 			"#baced8",
 			"#9ab8c8",
-			"#8aacc4", // 4 — primary silver
+			"#8aacc4",
 			"#7a9cb4",
 			"#5a7890",
-			"#385468", // 7 — dark steel
+			"#385468",
 			"#243440",
 			"#141e28",
 		],
-		// dark[7] → --mantine-color-body, dark[6] → card/input bg,
-		// dark[4] → default border, dark[2] → dimmed text
 		dark: [
-			RPG.textPrimary,  // 0 — primary text
-			RPG.borderSilver, // 1 — silver
-			RPG.textMuted,    // 2 — dimmed text
-			RPG.borderSteel,  // 3 — dark steel border
-			RPG.borderFaint,  // 4 — faint border
-			RPG.deepRowBg,    // 5 — deep row bg
-			RPG.panelBg,      // 6 — panel bg
-			RPG.bodyBg,       // 7 — body bg
-			"#060608",        // 8
-			"#030305",        // 9
+			RPG.textPrimary,   // 0
+			RPG.borderSilver,  // 1
+			RPG.textMuted,     // 2
+			RPG.borderSteel,   // 3
+			RPG.borderFaint,   // 4
+			RPG.deepRowBg,     // 5
+			RPG.panelBg,       // 6
+			RPG.bodyBg,        // 7
+			"#060608",         // 8
+			"#030305",         // 9
 		],
 		green: [
 			"#e8f5e9", "#c8e6c9", "#a5d6a7", "#81c784", "#66bb6a",
@@ -101,14 +100,64 @@ export const theme = createTheme({
 
 	cursorType: "pointer",
 
-	// ── Component overrides ──────────────────────────────────────────────────
+	cssVariablesResolver: () => ({
+		variables: {},
+		dark: {
+			// RPG palette tokens
+			"--rpg-body-bg":       RPG.bodyBg,
+			"--rpg-panel-bg":      RPG.panelBg,
+			"--rpg-row-bg":        RPG.rowBg,
+			"--rpg-deep-row-bg":   RPG.deepRowBg,
+			"--rpg-border-silver": RPG.borderSilver,
+			"--rpg-border-steel":  RPG.borderSteel,
+			"--rpg-border-faint":  RPG.borderFaint,
+			"--rpg-text-primary":  RPG.textPrimary,
+			"--rpg-text-muted":    RPG.textMuted,
+			"--rpg-navbar-bg":     RPG.panelBg,
+			"--rpg-sidebar-bg":    RPG.bodyBg,
+			// Override Mantine's built-in tokens so all components follow the palette
+			"--mantine-color-body":           RPG.bodyBg,
+			"--mantine-color-text":           RPG.textPrimary,
+			"--mantine-color-bright":         RPG.textPrimary,
+			"--mantine-color-dimmed":         RPG.textMuted,
+			"--mantine-color-placeholder":    RPG.textMuted,
+			"--mantine-color-default":        RPG.panelBg,
+			"--mantine-color-default-border": RPG.borderSteel,
+			"--mantine-color-anchor":         RPG.borderSilver,
+		},
+		light: {
+			// RPG palette tokens
+			"--rpg-body-bg":       RPG_LIGHT.bodyBg,
+			"--rpg-panel-bg":      RPG_LIGHT.panelBg,
+			"--rpg-row-bg":        RPG_LIGHT.rowBg,
+			"--rpg-deep-row-bg":   RPG_LIGHT.deepRowBg,
+			"--rpg-border-silver": RPG_LIGHT.borderSilver,
+			"--rpg-border-steel":  RPG_LIGHT.borderSteel,
+			"--rpg-border-faint":  RPG_LIGHT.borderFaint,
+			"--rpg-text-primary":  RPG_LIGHT.textPrimary,
+			"--rpg-text-muted":    RPG_LIGHT.textMuted,
+			"--rpg-navbar-bg":     RPG_LIGHT.panelBg,
+			"--rpg-sidebar-bg":    RPG_LIGHT.bodyBg,
+			// Override Mantine's built-in tokens
+			"--mantine-color-body":           RPG_LIGHT.bodyBg,
+			"--mantine-color-text":           RPG_LIGHT.textPrimary,
+			"--mantine-color-bright":         RPG_LIGHT.textPrimary,
+			"--mantine-color-dimmed":         RPG_LIGHT.textMuted,
+			"--mantine-color-placeholder":    RPG_LIGHT.textMuted,
+			"--mantine-color-default":        RPG_LIGHT.panelBg,
+			"--mantine-color-default-border": RPG_LIGHT.borderSteel,
+			"--mantine-color-anchor":         RPG_LIGHT.borderSilver,
+		},
+	}),
+
 	components: {
 		Card: {
 			styles: {
 				root: {
-					backgroundColor: RPG.panelBg,
-					border: `2px solid ${RPG.borderSilver}`,
-					boxShadow: `3px 3px 0px ${RPG.borderSteel}`,
+					backgroundColor: "var(--rpg-panel-bg)",
+					border: `2px solid var(--rpg-border-silver)`,
+					boxShadow: `3px 3px 0px var(--rpg-border-steel)`,
+					color: "var(--rpg-text-primary)",
 				},
 			},
 		},
@@ -117,51 +166,97 @@ export const theme = createTheme({
 			defaultProps: { variant: "light" },
 			styles: (_, props) => ({
 				root: {
-					boxShadow:
-						props.variant === "filled"
-							? `2px 2px 0px ${RPG.borderSteel}`
-							: undefined,
+					color: props.variant === "outline" || props.variant === "light" || !props.variant
+						? "var(--rpg-text-primary)"
+						: undefined,
+					borderColor: props.variant === "outline"
+						? "var(--rpg-border-silver)"
+						: undefined,
+					boxShadow: props.variant === "filled"
+						? `2px 2px 0px var(--rpg-border-steel)`
+						: undefined,
+				},
+				label: {
+					color: "inherit",
 				},
 			}),
+		},
+
+		ActionIcon: {
+			styles: {
+				root: {
+					color: "var(--rpg-text-primary)",
+				},
+			},
 		},
 
 		Input: {
 			styles: {
 				input: {
-					backgroundColor: RPG.panelBg,
-					borderColor: RPG.borderSteel,
-					color: RPG.textPrimary,
+					backgroundColor: "var(--rpg-panel-bg)",
+					borderColor: "var(--rpg-border-steel)",
+					color: "var(--rpg-text-primary)",
+					"&::placeholder": {
+						color: "var(--rpg-text-muted)",
+					},
 				},
 				label: {
-					color: RPG.textMuted,
+					color: "var(--rpg-text-muted)",
 				},
 			},
 		},
 
 		NumberInput: {
 			styles: {
-				label: { color: RPG.textMuted },
+				input: {
+					backgroundColor: "var(--rpg-panel-bg)",
+					borderColor: "var(--rpg-border-steel)",
+					color: "var(--rpg-text-primary)",
+				},
+				label: { color: "var(--rpg-text-muted)" },
 			},
 		},
 
 		Select: {
 			styles: {
-				label: { color: RPG.textMuted },
+				input: {
+					backgroundColor: "var(--rpg-panel-bg)",
+					borderColor: "var(--rpg-border-steel)",
+					color: "var(--rpg-text-primary)",
+				},
+				label: { color: "var(--rpg-text-muted)" },
+			},
+		},
+
+		Checkbox: {
+			styles: {
+				label: { color: "var(--rpg-text-primary)" },
+				input: {
+					borderColor: "var(--rpg-border-steel)",
+					backgroundColor: "var(--rpg-panel-bg)",
+				},
 			},
 		},
 
 		Combobox: {
 			styles: {
 				dropdown: {
-					backgroundColor: RPG.panelBg,
-					border: `2px solid ${RPG.borderSilver}`,
-					boxShadow: `3px 3px 0px ${RPG.borderSteel}`,
+					backgroundColor: "var(--rpg-panel-bg)",
+					border: `2px solid var(--rpg-border-silver)`,
+					boxShadow: `3px 3px 0px var(--rpg-border-steel)`,
 				},
 				option: {
-					color: RPG.textPrimary,
+					color: "var(--rpg-text-primary)",
+					"&[data-combobox-selected]": {
+						backgroundColor: "var(--rpg-row-bg)",
+						color: "var(--rpg-text-primary)",
+					},
+					"&:hover": {
+						backgroundColor: "var(--rpg-row-bg)",
+					},
 				},
 				groupLabel: {
-					color: RPG.borderSilver,
+					color: "var(--rpg-border-silver)",
 					fontFamily: FONTS.dos,
 				},
 			},
@@ -170,31 +265,25 @@ export const theme = createTheme({
 		Table: {
 			styles: {
 				th: {
-					color: RPG.borderSilver,
-					backgroundColor: RPG.rowBg,
-					borderColor: RPG.borderFaint,
+					color: "var(--rpg-border-silver)",
+					backgroundColor: "var(--rpg-row-bg)",
+					borderColor: "var(--rpg-border-faint)",
 					fontFamily: FONTS.dos,
 				},
 				td: {
-					color: RPG.textPrimary,
-					borderColor: RPG.borderFaint,
+					color: "var(--rpg-text-primary)",
+					borderColor: "var(--rpg-border-faint)",
 				},
-				tr: {
-					borderColor: RPG.borderFaint,
-				},
-				table: {
-					borderColor: RPG.borderSilver,
-				},
+				tr: { borderColor: "var(--rpg-border-faint)" },
+				table: { borderColor: "var(--rpg-border-silver)" },
 			},
 		},
 
 		Divider: {
 			styles: {
-				root: {
-					borderColor: RPG.borderSteel,
-				},
+				root: { borderColor: "var(--rpg-border-steel)" },
 				label: {
-					color: RPG.borderSilver,
+					color: "var(--rpg-border-silver)",
 					fontFamily: FONTS.dos,
 				},
 			},
@@ -204,24 +293,22 @@ export const theme = createTheme({
 			defaultProps: { color: "silver" },
 			styles: {
 				root: {
-					border: `1px solid ${RPG.borderSilver}`,
-					backgroundColor: RPG.rowBg,
+					border: `1px solid var(--rpg-border-silver)`,
+					backgroundColor: "var(--rpg-row-bg)",
 				},
-				label: {
-					color: RPG.borderSilver,
-				},
+				label: { color: "var(--rpg-border-silver)" },
 			},
 		},
 
 		Avatar: {
 			styles: {
 				root: {
-					border: `1px solid ${RPG.borderSteel}`,
-					backgroundColor: RPG.panelBg,
+					border: `1px solid var(--rpg-border-steel)`,
+					backgroundColor: "var(--rpg-panel-bg)",
 				},
 				placeholder: {
-					color: RPG.borderSilver,
-					backgroundColor: RPG.panelBg,
+					color: "var(--rpg-border-silver)",
+					backgroundColor: "var(--rpg-panel-bg)",
 				},
 			},
 		},
@@ -229,23 +316,37 @@ export const theme = createTheme({
 		Drawer: {
 			styles: {
 				content: {
-					backgroundColor: RPG.panelBg,
-					borderLeft: `2px solid ${RPG.borderSilver}`,
+					backgroundColor: "var(--rpg-panel-bg)",
+					borderLeft: `2px solid var(--rpg-border-silver)`,
 				},
 				header: {
-					backgroundColor: RPG.panelBg,
-					borderBottom: `1px solid ${RPG.borderSteel}`,
+					backgroundColor: "var(--rpg-panel-bg)",
+					borderBottom: `1px solid var(--rpg-border-steel)`,
 				},
+				title: { color: "var(--rpg-text-primary)" },
 			},
 		},
 
 		Tooltip: {
 			styles: {
 				tooltip: {
-					backgroundColor: RPG.rowBg,
-					border: `1px solid ${RPG.borderSteel}`,
-					color: RPG.textPrimary,
+					backgroundColor: "var(--rpg-row-bg)",
+					border: `1px solid var(--rpg-border-steel)`,
+					color: "var(--rpg-text-primary)",
 				},
+			},
+		},
+
+		ScrollArea: {
+			styles: {
+				root:     { backgroundColor: "var(--rpg-body-bg)" },
+				viewport: { backgroundColor: "var(--rpg-body-bg)" },
+			},
+		},
+
+		Paper: {
+			styles: {
+				root: { backgroundColor: "var(--rpg-panel-bg)" },
 			},
 		},
 	},

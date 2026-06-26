@@ -1,5 +1,6 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
+	ActionIcon,
 	Badge,
 	Box,
 	Button,
@@ -19,14 +20,17 @@ import {
 	Stack,
 	Text,
 	Tooltip,
+	useMantineColorScheme,
 } from "@mantine/core";
 import { useClipboard, useResizeObserver } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
 	IconClipboard,
 	IconCoin,
+	IconMoon,
 	IconPlus,
 	IconShoppingCart,
+	IconSun,
 } from "@tabler/icons-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -84,6 +88,8 @@ export default observer(function Home() {
 	const [resizeObserverRef, rect] = useResizeObserver();
 
 	const [parentAutoAnimate] = useAutoAnimate();
+
+	const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
 	const isDebugMode = globalStore.debugMode;
 	const bindQuantity = globalStore.bindQuantity;
@@ -431,6 +437,11 @@ export default observer(function Home() {
 					/>
 				</Tooltip>
 				<div className={classes.navbarSpacer} />
+				<Tooltip label={colorScheme === "dark" ? "Light mode" : "Dark mode"}>
+					<ActionIcon variant="subtle" onClick={toggleColorScheme} size="sm">
+						{colorScheme === "dark" ? <IconSun size={16} /> : <IconMoon size={16} />}
+					</ActionIcon>
+				</Tooltip>
 				<ShoppingListButton
 					value={showShoppingList}
 					onClick={(val) => setShowShoppingList(!val)}
@@ -438,10 +449,10 @@ export default observer(function Home() {
 				/>
 			</nav>
 
-			<ScrollArea w="100%">
+			<ScrollArea w="100%" style={{ backgroundColor: "var(--rpg-body-bg)" }}>
 				<Space h={headerHeight} />
 
-				<Flex direction={{ base: "column", sm: "row" }} p={{ base: "sm", sm: "md" }} gap={{ base: "md", sm: 0 }} w="100%">
+				<Flex direction={{ base: "column", sm: "row" }} p={{ base: "sm", sm: "md" }} gap={{ base: "md", sm: 0 }} w="100%" style={{ backgroundColor: "var(--rpg-body-bg)" }}>
 					<Card className={classes.leftContainer} p="sm" style={{ top: headerHeight, height: `calc(100vh - ${headerHeight}px)` }}>
 						{/* Group list */}
 						<Box className={classes.leftContainerList}>
@@ -472,7 +483,7 @@ export default observer(function Home() {
 												: "3px solid transparent",
 											backgroundColor: isSelected
 												? "rgba(138, 172, 196, 0.08)"
-												: "var(--mantine-color-dark-5)",
+												: "var(--rpg-deep-row-bg)",
 										}}
 										onClick={() => setSelectedGroupId(group.id)}
 									>
