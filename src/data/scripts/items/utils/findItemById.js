@@ -44,6 +44,9 @@ export async function findItemById(id) {
 		return null;
 	}
 
+	if (!foundItemData) {
+		foundItemData = {};
+	}
 	foundItemData._itemData = fetchedItemExtraData;
 
 	return foundItemData;

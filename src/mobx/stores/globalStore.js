@@ -21,7 +21,7 @@ const defaultProperties = {
 	/** @type {LanguageCodes} */
 	language: "en",
 	/** @type {Regions} */
-	server: "europe",
+	server: "east",
 	debugMode: false,
 	bindQuantity: true,
 	indexedDb: null,

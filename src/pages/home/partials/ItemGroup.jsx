@@ -1,5 +1,6 @@
 import {
 	ActionIcon,
+	Badge,
 	Box,
 	Button,
 	Card,
@@ -253,17 +254,35 @@ export const ItemGroup = observer(
 
 		async function getIngredients() {
 			setIsLoadingComponents(true);
+			try {
 
 			const { product } = getGroupParts(_groupStore);
 
 			const productId = product?.id;
+
+			if (!productId) {
+				notifications.show({
+					color: "orange",
+					icon: <IconX />,
+					title: "No item selected",
+					message: "Select a product item first before fetching components.",
+					autoClose: 5000,
+				});
+				return;
+			}
 
 			const { tier, enchant } = getItemIdComponents(productId);
 
 			const foundItem = await findItemById(productId);
 
 			if (!foundItem) {
-				setIsLoadingComponents(false);
+				notifications.show({
+					color: "red",
+					icon: <IconX />,
+					title: "Item data not found",
+					message: "Could not load item data. Check your connection and try again.",
+					autoClose: 8000,
+				});
 				return;
 			}
 
@@ -275,10 +294,14 @@ export const ItemGroup = observer(
 			let enchantZeroNotFound = false;
 
 			if (Object.keys(craftingRequirements).length === 0) {
-				let enchantData = itemData?.enchantments?.enchantments[enchant];
+				const enchantments = itemData?.enchantments?.enchantments ?? [];
+
+				// Look up by enchantmentLevel, not array index (API array is 0-indexed but levels start at 1)
+				let enchantData = enchantments.find?.((e) => e.enchantmentLevel === enchant);
 
 				if (!enchantData) {
-					enchantData = itemData?.enchantments?.enchantments[enchant + 1];
+					// Base item (enchant 0) — use the first enchantment entry as a template
+					enchantData = enchantments[0];
 					enchantZeroNotFound = true;
 				}
 
@@ -289,7 +312,7 @@ export const ItemGroup = observer(
 			let craftResourceList = craftingRequirements?.craftResourceList ?? [];
 
 			if (enchantZeroNotFound) {
-				// Temporary fix when enchant 0 is not found, enchant 1 is used instead and only the first resource is used
+				// For base (enchant 0) consumables: only the main ingredients, drop the last (extract/sauce)
 				craftResourceList = [craftResourceList[0]];
 			}
 
@@ -311,24 +334,29 @@ export const ItemGroup = observer(
 				
 			*/
 
-			if (["potion", "cooked"].includes(itemData?.categoryId)) {
+			// API returns "potions" and "food" (not "potion"/"cooked")
+			if (["potions", "food"].includes(itemData?.categoryId)) {
 				if (enchant === 0) {
 					craftResourceList.pop();
 				}
 			}
 
-			if (
-				["metalbar", "leather", "fiber", "stoneblock", "planks"].includes(
-					itemData?.categoryId,
-				)
-			) {
-				const refinedToRaw = {
-					metalbar: "ore",
-					leather: "hide",
-					fiber: "cloth",
-					stoneblock: "rock",
-					planks: "wood",
-				};
+			// API returns "refinedresources" for all refined materials, so detect
+			// the specific type from the product ID (e.g. "T4_LEATHER" → "leather")
+			const refinedToRaw = {
+				metalbar: "ore",
+				leather: "hide",
+				fiber: "cloth",
+				stoneblock: "rock",
+				planks: "wood",
+			};
+			const productBaseName = productId
+				.replace(/^T\d+_/i, "")
+				.replace(/@.*$/, "")
+				.toLowerCase();
+			const refinedMaterialType = refinedToRaw[productBaseName] ? productBaseName : null;
+
+			if (refinedMaterialType) {
 
 				const craftTierQuantity = {
 					2: {
@@ -377,7 +405,7 @@ export const ItemGroup = observer(
 				}
 
 				if (rawCount) {
-					const rawItemId = `T${tier}_${refinedToRaw[itemData?.categoryId].toUpperCase()}`;
+					const rawItemId = `T${tier}_${refinedToRaw[refinedMaterialType].toUpperCase()}`;
 
 					const rawComponent = buildAndFindItemId({
 						itemId: rawItemId,
@@ -389,6 +417,8 @@ export const ItemGroup = observer(
 					});
 				}
 			}
+
+			craftResourceList = craftResourceList.filter(Boolean);
 
 			if (craftResourceList.length === 0) {
 				notifications.show({
@@ -429,6 +459,8 @@ export const ItemGroup = observer(
 					id: itemId,
 					quantity: _resource.count,
 					originalQuantity: _resource.count,
+					isActive: false,
+					isInShoppingList: false,
 				});
 			}
 
@@ -437,9 +469,20 @@ export const ItemGroup = observer(
 				cleanIngredients: true,
 			});
 
-			setIsLoadingComponents(false);
 			await getPrices();
 			handleOnChange();
+
+			} catch (err) {
+				notifications.show({
+					color: "red",
+					icon: <IconX />,
+					title: "Failed to get components",
+					message: err?.message ?? "An unexpected error occurred.",
+					autoClose: 8000,
+				});
+			} finally {
+				setIsLoadingComponents(false);
+			}
 		}
 
 		function handleOnChange() {
@@ -509,56 +552,7 @@ export const ItemGroup = observer(
 			);
 		}
 
-		function ProductOptions() {
-			return (
-				<Group justify="space-evenly">
-					<TierSelector
-						onTierChange={(tier) => {
-							_groupStore.changeGroupTier({
-								tierLevelChange: tier,
-							});
-							handleOnChange();
-						}}
-						onEnchantChange={(enchant) => {
-							_groupStore.changeGroupTier({
-								enchantLevelChange: enchant,
-							});
-							handleOnChange();
-						}}
-					/>
-
-					<TaxSelector
-						tax={_groupStore.tax}
-						onChange={(tax) => {
-							_groupStore.editGroup({
-								payload: {
-									tax,
-								},
-							});
-							handleOnChange();
-						}}
-					/>
-
-					<Group justify="flex-start">
-						<Box>
-							<Button
-								size="xs"
-								variant={hasIngredients ? "transparent" : "light"}
-								onClick={() => {
-									getIngredients();
-								}}
-								leftSection={<IconHammer />}
-								loading={isLoadingComponents}
-							>
-								{m.getComponents()}
-							</Button>
-						</Box>
-					</Group>
-				</Group>
-			);
-		}
-
-		function ComponentActions() {
+function ComponentActions() {
 			return (
 				<Group grow>
 					<Button
@@ -629,82 +623,131 @@ export const ItemGroup = observer(
 		// const atLeastOneItemIsInShoppingList = group.atLeastOneItemIsInShoppingList();
 
 		return (
-			<Group wrap="nowrap" h="100%">
-				<Card h="100%" id="item-group-card" miw="fit-content">
-					<Group justify="space-between" pb="xs">
-						<Text size="xs" c="dimmed">
-							{m.group()} {order + 1}
-						</Text>
-
-						{globalStore.debugMode && (
-							<Text size="md">
-								{group.id}_{group.order}
-							</Text>
-						)}
-
+			<Stack gap="md">
+				{/* ── Group editing card ─────────────────────────────────── */}
+				<Card id="item-group-card" p="md">
+					{/* Header */}
+					<Group justify="space-between" align="center" mb="md" pb="sm"
+						style={{ borderBottom: "1px solid var(--mantine-color-dark-4)" }}
+					>
+						<Group gap="xs">
+							<Badge
+								variant="filled"
+								color="silver"
+								size="md"
+								ff="monospace"
+								style={{ letterSpacing: 1 }}
+							>
+								#{order + 1}
+							</Badge>
+							{globalStore.debugMode && (
+								<Text size="xs" c="dimmed" ff="monospace">
+									{group.id}_{group.order}
+								</Text>
+							)}
+						</Group>
 						<GroupActions />
 					</Group>
 
-					<Group wrap="nowrap">
-						<Stack h="100%" justify="flex-start" gap="md">
-							<LocationsSelector
-								location={group.location}
-								onChange={({ location }) => {
-									_groupStore.editGroup({
-										payload: {
-											location,
-										},
-									});
+					{/* Location row */}
+					<Group gap="md" mb="md" align="flex-end" wrap="wrap">
+						<LocationsSelector
+							location={group.location}
+							onChange={({ location }) => {
+								_groupStore.editGroup({ payload: { location } });
+								handleOnChange();
+							}}
+						/>
+					</Group>
+
+					<Divider my="md" label={m.result()} labelPosition="left" />
+
+					<Stack gap="lg">
+						<ProductRow
+							label={m.result()}
+							item={product}
+							onChange={(_payload) => {
+								_groupStore.editGroupItem({
+									itemUid: _payload.uid,
+									payload: _payload,
+									isProduct: true,
+									bindQuantity,
+								});
+								handleOnChange();
+							}}
+							isHighlighted
+							hasFetchedPrices={hasFetchedPrices}
+							tax={_groupStore.tax}
+						/>
+
+						{/* Tier / Tax / Get Components — right below the product */}
+						<Group gap="md" align="flex-end" wrap="wrap">
+							<TierSelector
+								onTierChange={(tier) => {
+									_groupStore.changeGroupTier({ tierLevelChange: tier });
+									handleOnChange();
+								}}
+								onEnchantChange={(enchant) => {
+									_groupStore.changeGroupTier({ enchantLevelChange: enchant });
 									handleOnChange();
 								}}
 							/>
+							<TaxSelector
+								tax={_groupStore.tax}
+								onChange={(tax) => {
+									_groupStore.editGroup({ payload: { tax } });
+									handleOnChange();
+								}}
+							/>
+							<Box ml="auto">
+								<Button
+									size="sm"
+									variant="light"
+									color="teal"
+									leftSection={<IconHammer size={14} />}
+									loading={isLoadingComponents}
+									onClick={() => getIngredients()}
+								>
+									{m.getComponents()}
+								</Button>
+							</Box>
+						</Group>
 
-							<Stack miw="700px">
-								<ProductRow
-									label={m.result()}
-									item={product}
-									onChange={(_payload) => {
-										_groupStore.editGroupItem({
-											itemUid: _payload.uid,
-											payload: _payload,
-											isProduct: true,
-											bindQuantity,
-										});
-										handleOnChange();
-									}}
-									isHighlighted
-									hasFetchedPrices={hasFetchedPrices}
-								/>
+						<Divider my="md" label={m.components()} labelPosition="left" />
 
-								<ProductOptions />
+						<ShoppingListToggle />
 
-								<Divider my="xs" label={m.components()} labelPosition="center" />
-
-								<ShoppingListToggle />
-
-								<ComponentList
-									ingredients={ingredients}
-									groupStore={_groupStore}
-									handleOnChange={handleOnChange}
-									bindQuantity={bindQuantity}
-									hasFetchedPrices={hasFetchedPrices}
-								/>
-								<ComponentActions />
-							</Stack>
-						</Stack>
-					</Group>
+						<ComponentList
+							ingredients={ingredients}
+							groupStore={_groupStore}
+							handleOnChange={handleOnChange}
+							bindQuantity={bindQuantity}
+							hasFetchedPrices={hasFetchedPrices}
+						/>
+						<ComponentActions />
+					</Stack>
 				</Card>
 
-				<Card h="100%">
-					<Stack h="100%" justify="flex-start">
-						<Text size="lg" fw="bold" ta="center">
-							{m.itemData()}
-						</Text>
+				{/* ── Item data / stats card ─────────────────────────────── */}
+				<Card>
+					<Stack gap="md">
+						<Divider
+							label={
+								<Group gap="xs">
+									<IconCloudDownload size={14} />
+									<Text size="sm" fw="bold" ff="monospace">
+										{m.itemData()}
+									</Text>
+								</Group>
+							}
+							labelPosition="center"
+						/>
 
 						<Center>
 							<Button
 								rightSection={<IconCloudDownload />}
 								color="teal"
+								variant="light"
 								onClick={async () => {
 									await getPrices({ groupId: group.id });
 									handleOnChange();
@@ -722,7 +765,7 @@ export const ItemGroup = observer(
 						</Suspense>
 					</Stack>
 				</Card>
-			</Group>
+			</Stack>
 		);
 	},
 );

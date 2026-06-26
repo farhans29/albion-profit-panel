@@ -96,7 +96,7 @@ export class GroupStore {
 					new ItemGroupElement({ type: "ingredient" }),
 				];
 		/** @type {import("@/pages/home/partials/TaxSelector").TaxesValue} */
-		this.tax = data?.tax ?? TAXES.sellOrderWithPremium;
+		this.tax = data?.tax ?? TAXES.sellOrderWithoutPremium;
 		this.location = data?.location ?? locations[0];
 		this.order = data?.order ?? 0;
 

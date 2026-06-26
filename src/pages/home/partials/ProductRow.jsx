@@ -25,7 +25,7 @@ import {
 	IconTrash,
 } from "@tabler/icons-react";
 import { observer } from "mobx-react-lite";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { globalStore } from "@/mobx/rootStore";
 import { PRICE_MODES } from "@/mobx/stores/groupStore";
 import * as m from "@/paraglide/messages.js";
@@ -51,6 +51,77 @@ export const LockedPriceButton = ({ item, onChange = {} }) => {
 		</Tooltip>
 	);
 };
+
+// ── Item search index — built once per language, shared across all rows ────
+const _itemListCache = {};   // langKey → { value, label }[]
+const _searchIndex = new Map(); // value → lowercase label (for fast lookup)
+const _itemByValue = new Map(); // value → { value, label } (for selected-item lookup)
+
+function getItemList(langKey) {
+	if (_itemListCache[langKey]) return _itemListCache[langKey];
+
+	const list = [];
+	for (const _item of albionData) {
+		const name = _item.LocalizedNames?.[langKey];
+		if (!name) continue;
+
+		const id = _item.UniqueName;
+		const parts = id.match(/T([0-9])[^@]*@?([0-9])?/);
+		const tier = parts?.[1] ?? "";
+		const enchant = parts?.[2] ?? "0";
+		const prefix = tier ? `T${tier}.${enchant} ` : "";
+		const label = `${prefix}${name}`;
+		const entry = { value: id, label };
+
+		list.push(entry);
+		_searchIndex.set(id, label.toLowerCase());
+		_itemByValue.set(id, entry);
+	}
+
+	_itemListCache[langKey] = list;
+	return list;
+}
+
+function searchItems(itemList, query, limit = 24) {
+	if (!query.trim()) return itemList.slice(0, limit);
+	const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+	const results = [];
+	for (const item of itemList) {
+		if (results.length >= limit) break;
+		const s = _searchIndex.get(item.value) ?? "";
+		if (terms.every((t) => s.includes(t))) results.push(item);
+	}
+	return results;
+}
+
+// Mantine Select only ever receives ≤24 items — no internal processing of 2500+ entries.
+const ItemSelect = memo(({ label, itemList, value, onChange }) => {
+	const [search, setSearch] = useState("");
+
+	const visibleOptions = useMemo(() => {
+		const results = searchItems(itemList, search);
+		// Always keep the selected item in the list so Mantine can display its label.
+		if (value && !results.some((r) => r.value === value)) {
+			const selected = _itemByValue.get(value);
+			if (selected) results.unshift(selected);
+		}
+		return results;
+	}, [search, itemList, value]);
+
+	return (
+		<Select
+			label={label}
+			placeholder="Pick value"
+			data={visibleOptions}
+			value={value}
+			searchValue={search}
+			onSearchChange={setSearch}
+			onChange={onChange}
+			searchable
+			filter={({ options }) => options}
+		/>
+	);
+});
 
 export const ItemImage = ({ itemId, onCopy }) => {
 	return (
@@ -92,73 +163,16 @@ export const ProductRow = observer(
 		isHighlighted = false,
 		withOmit = false,
 		hasFetchedPrices = false,
+		tax = 0,
 	}) => {
 		const clipboard = useClipboard();
 
 		const language = globalStore.language;
 
-		const itemList = useMemo(() => {
-			const list = new Set();
-
-			for (const _item of albionData) {
-				let label = _item.LocalizedNames?.[globalStore.getItemLangKey()];
-
-				if (!label) {
-					continue;
-				}
-
-				const itemId = _item.UniqueName; // "T8_SHOES_LEATHER_MORGANA@1"
-
-				const parts = itemId.match(/T([0-9])[^@]*@?([0-9])?/);
-
-				const tier = parts?.[1] ?? "";
-				const enchant = parts?.[2] ?? "0";
-
-				let prefix = "";
-				if (tier) {
-					prefix = `T${tier}`;
-
-					if (enchant) {
-						prefix = `${prefix}.${enchant}`;
-					}
-
-					prefix += " ";
-				}
-
-				label = `${prefix}${label}`;
-
-				list.add({
-					value: _item.UniqueName,
-					label,
-				});
-			}
-
-			return [...list];
-		}, [language]);
-
-		const currentItemName = useMemo(() => {
-			for (const _item of albionData) {
-				if (_item.UniqueName === item?.id) {
-					return _item.LocalizedNames?.[globalStore.getItemLangKey()];
-				}
-			}
-		}, [item?.id, language]);
-
-		const MemoizedSelect = memo(() => {
-			return (
-				<Select
-					label={label}
-					placeholder="Pick value"
-					data={itemList}
-					value={item?.id}
-					limit={24}
-					onChange={(value) => {
-						handleChange({ id: value });
-					}}
-					searchable
-				/>
-			);
-		}, [itemList]);
+		const itemList = useMemo(
+			() => getItemList(globalStore.getItemLangKey()),
+			[language],
+		);
 
 		function handleChange(newItem = {}) {
 			onChange({
@@ -166,6 +180,14 @@ export const ProductRow = observer(
 				...newItem,
 			});
 		}
+
+		// Always points to the latest handleChange; stable identity across renders.
+		const handleChangeRef = useRef(handleChange);
+		handleChangeRef.current = handleChange;
+		const handleSelectChange = useCallback(
+			(value) => handleChangeRef.current({ id: value }),
+			[],
+		);
 
 		function handlePriceModeChange() {
 			/** @type {import("@/mobx/stores/groupStore").PriceMode} */
@@ -227,7 +249,12 @@ export const ProductRow = observer(
 				<Grid.Col span="content">
 					<Stack gap="xxs">
 						<Group>
-							<MemoizedSelect />
+							<ItemSelect
+							label={label}
+							itemList={itemList}
+							value={item?.id}
+							onChange={handleSelectChange}
+						/>
 							<Group gap="xs" wrap="nowrap">
 								<NumberInput
 									label={<Text size="xs">{m.sellPrice()}</Text>}
@@ -393,6 +420,20 @@ export const ProductRow = observer(
 								value={calculatedTotal}
 								readOnly
 							/>
+
+							{isProduct && tax > 0 && (
+								<NumberInput
+									variant="filled"
+									label="Grand Total"
+									thousandSeparator={globalStore.thousandSeparator}
+									decimalSeparator={globalStore.decimalSeparator}
+									hideControls
+									w={120}
+									value={Math.round(calculatedTotal * (1 - tax / 100))}
+									readOnly
+									styles={{ input: { color: "var(--mantine-color-green-5)", fontWeight: 700 } }}
+								/>
+							)}
 
 							{hasFetchedPrices && !item?.price && item?.id && (
 								<Text size="xs" c="red.5">

@@ -1,19 +1,19 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
-	Anchor,
-	Avatar,
 	Badge,
 	Box,
 	Button,
 	Card,
 	Center,
 	Checkbox,
+	Divider,
 	Drawer,
 	Flex,
 	Grid,
 	Group,
 	Image,
 	Loader,
+	NumberFormatter,
 	ScrollArea,
 	Space,
 	Stack,
@@ -23,9 +23,8 @@ import {
 import { useClipboard, useResizeObserver } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
-	IconBrandGithub,
-	IconBrandReddit,
 	IconClipboard,
+	IconCoin,
 	IconPlus,
 	IconShoppingCart,
 } from "@tabler/icons-react";
@@ -46,6 +45,21 @@ import { getRandomWallpaper } from "./utils/getRandomWallpaper";
 import { generateUid } from "./utils/group/generateUid";
 import { getGroupParts } from "./utils/group/getGroupParts.js";
 import { IndexedDB } from "./utils/IndexedDB/IndexedDB";
+
+function getGroupTotalCost(group) {
+	const { product } = getGroupParts(group);
+	if (!product) return 0;
+	const units = (product.quantity ?? 0) * (product.quantityPerCraft ?? 1);
+	return Math.round(units * (product.price ?? 0));
+}
+
+function getGroupTaxAmount(group) {
+	return Math.round(getGroupTotalCost(group) * (group?.tax ?? 0) / 100);
+}
+
+function getGroupGrandTotal(group) {
+	return getGroupTotalCost(group) - getGroupTaxAmount(group);
+}
 
 export default observer(function Home() {
 	const [isInitialized, setIsInitialized] = useState(false);
@@ -401,148 +415,158 @@ export default observer(function Home() {
 		<div className={classes.mainContainer} ref={parentAutoAnimate}>
 			<Image className={classes.image} src={wallpaper} />
 
+			{/* ── Top Navbar ─────────────────────────────────────────────── */}
+			<nav className={classes.navbar} ref={resizeObserverRef}>
+				<span className={classes.navbarBrand}>⚔ Albion Profit</span>
+				<div className={classes.navbarDivider} />
+				<LanguageSelector />
+				<ServerSelector />
+				<div className={classes.navbarDivider} />
+				<Tooltip label={m.bindQuantityTooltip()}>
+					<Checkbox
+						label={m.bindQuantity()}
+						size="xs"
+						onChange={(ev) => { globalStore.bindQuantity = ev.target.checked; }}
+						checked={bindQuantity}
+					/>
+				</Tooltip>
+				<div className={classes.navbarSpacer} />
+				<ShoppingListButton
+					value={showShoppingList}
+					onClick={(val) => setShowShoppingList(!val)}
+					count={shoppingList.items.size}
+				/>
+			</nav>
+
 			<ScrollArea w="100%">
-				<Grid
-					ref={resizeObserverRef}
-					// my="xs"
-					// mx="md"
-					px="sm"
-					py="xs"
-					style={{
-						backgroundColor: "rgba(0, 0, 0, 0.4)",
-						backdropFilter: "blur(6px)",
-						position: "absolute",
-						left: 0,
-						top: 0,
-						zIndex: 90,
-						width: "100%",
-						margin: 0,
-					}}
-				>
-					<Grid.Col span={4}>
-						<Group justify="flex-start">
-							<LanguageSelector />
-							<ServerSelector />
-
-							<Tooltip label={m.bindQuantityTooltip()}>
-								<Checkbox
-									label={m.bindQuantity()}
-									onChange={(ev) => {
-										globalStore.bindQuantity = ev.target.checked;
-									}}
-									checked={bindQuantity}
-								/>
-							</Tooltip>
-						</Group>
-					</Grid.Col>
-
-					<Grid.Col span={4}>
-						<Group justify="center" h="100%">
-							<ShoppingListButton
-								value={showShoppingList}
-								onClick={(val) => setShowShoppingList(!val)}
-								count={shoppingList.items.size}
-							/>
-						</Group>
-					</Grid.Col>
-
-					<Grid.Col span={4}>
-						<Group justify="flex-end">
-							<Button
-								variant={isDebugMode ? "filled" : "outline"}
-								onClick={() => {
-									globalStore.debugMode = !isDebugMode;
-								}}
-							>
-								Debug mode
-							</Button>
-
-							<Anchor href="https://github.com/Icaruk/albion-profit" target="_blank">
-								<Avatar variant="light">
-									<IconBrandGithub size={32} />
-								</Avatar>
-							</Anchor>
-
-							<Anchor
-								href="https://www.reddit.com/r/albiononline/comments/1co93rm/i_created_a_tool_to_calculate_profits/"
-								target="_blank"
-							>
-								<Avatar variant="light">
-									<IconBrandReddit
-										size={32}
-										color="var(--mantine-color-orange-7)"
-									/>
-								</Avatar>
-							</Anchor>
-						</Group>
-					</Grid.Col>
-				</Grid>
-
 				<Space h={headerHeight} />
 
-				<Flex direction="row" p="md" w="100%">
-					<Card className={classes.leftContainer} p="md">
-						{sortedGroups?.map((_groupStore, _idx) => {
-							const group = _groupStore;
-							const { product } = getGroupParts(group);
-							const isSelected = selectedGroupId === group.id;
+				<Flex direction={{ base: "column", sm: "row" }} p={{ base: "sm", sm: "md" }} gap={{ base: "md", sm: 0 }} w="100%">
+					<Card className={classes.leftContainer} p="sm" style={{ top: headerHeight, height: `calc(100vh - ${headerHeight}px)` }}>
+						{/* Group list */}
+						<Box className={classes.leftContainerList}>
+							{sortedGroups?.map((_groupStore, _idx) => {
+								const group = _groupStore;
+								const { product } = getGroupParts(group);
+								const isSelected = selectedGroupId === group.id;
 
-							if (!group) {
-								return null;
-							}
+								if (!group) {
+									return null;
+								}
 
-							const style = {
-								cursor: "pointer",
-								border: isSelected
-									? "1px solid var(--mantine-color-blue-5)"
-									: undefined,
-							};
+								const hasItemsInShoppingList = group.atLeastOneItemIsInShoppingList();
 
-							const hasItemsInShoppingList = group.atLeastOneItemIsInShoppingList();
+								const groupCost = getGroupTotalCost(group);
+								const groupTax = getGroupTaxAmount(group);
+								const groupGrand = getGroupGrandTotal(group);
 
-							return (
-								<Grid
-									key={group.id}
-									p="xxs"
-									className={classes.leftContainerItem}
-									bg={"dark.5"}
-									gutter={"xxs"}
-									mb={2}
-									style={style}
-									onClick={() => {
-										setSelectedGroupId(group.id);
-									}}
-								>
-									<Grid.Col span="content">
-										<ItemImage itemId={product?.id} />
-									</Grid.Col>
+								return (
+									<Box
+										key={group.id}
+										className={classes.leftContainerItem}
+										mb={2}
+										style={{
+											cursor: "pointer",
+											borderLeft: isSelected
+												? "3px solid var(--mantine-color-silver-4)"
+												: "3px solid transparent",
+											backgroundColor: isSelected
+												? "rgba(138, 172, 196, 0.08)"
+												: "var(--mantine-color-dark-5)",
+										}}
+										onClick={() => setSelectedGroupId(group.id)}
+									>
+										<Group gap="xs" p="xxs" wrap="nowrap">
+											<ItemImage itemId={product?.id} />
+											<Stack gap={1} style={{ flex: 1, minWidth: 0 }}>
+												<Group justify="space-between" wrap="nowrap" gap={4}>
+													<Text size="sm" lineClamp={1} style={{ flex: 1 }}>
+														{product?.names?.[globalStore.getItemLangKey()]}
+													</Text>
+													{hasItemsInShoppingList && (
+														<IconShoppingCart size={13} color="var(--mantine-color-dimmed)" />
+													)}
+												</Group>
+												<Text c="dimmed" size="xs">
+													x{product?.quantity * (product?.quantityPerCraft ?? 1)}
+												</Text>
+												<Group gap={4}>
+													<IconCoin size={12} color="var(--mantine-color-silver-4)" />
+													<Text size="xs" ff="monospace" c="silver.4">
+														<NumberFormatter
+															thousandSeparator={globalStore.thousandSeparator}
+															decimalSeparator={globalStore.decimalSeparator}
+															value={groupCost}
+														/>
+													</Text>
+												</Group>
 
-									<Grid.Col span="auto">
-										<Stack h="100%" justify="center" gap="0">
-											<Text>
-												{product?.names?.[globalStore.getItemLangKey()]}
-											</Text>
+												{groupTax > 0 && (
+													<Group gap={4}>
+														<IconCoin size={12} color="var(--mantine-color-red-4)" />
+														<Text size="xs" ff="monospace" c="red.4">
+															-<NumberFormatter
+																thousandSeparator={globalStore.thousandSeparator}
+																decimalSeparator={globalStore.decimalSeparator}
+																value={groupTax}
+															/>
+														</Text>
+														<Text size="xs" c="dimmed">{group.tax}% tax</Text>
+													</Group>
+												)}
+											</Stack>
+										</Group>
+									</Box>
+								);
+							})}
+						</Box>
 
-											<Text c="dimmed" size="xs">
-												x{" "}
-												{product?.quantity *
-													(product?.quantityPerCraft ?? 1)}
-											</Text>
-										</Stack>
-									</Grid.Col>
+						{/* Footer */}
+						<Box className={classes.leftContainerFooter}>
+							<Group justify="space-between" px="xxs" pt="xs">
+								<Text size="xs" c="dimmed">Total</Text>
+								<Group gap={4}>
+									<IconCoin size={13} color="var(--mantine-color-silver-4)" />
+									<Text size="xs" ff="monospace" fw="bold" c="silver.4">
+										<NumberFormatter
+											thousandSeparator={globalStore.thousandSeparator}
+											decimalSeparator={globalStore.decimalSeparator}
+											value={sortedGroups.reduce((sum, g) => sum + getGroupTotalCost(g), 0)}
+										/>
+									</Text>
+								</Group>
+							</Group>
 
-									{hasItemsInShoppingList && (
-										<Grid.Col span="content">
-											<Center h="100%">
-												<IconShoppingCart size={18} />
-											</Center>
-										</Grid.Col>
-									)}
-								</Grid>
-							);
-						})}
+							<Group justify="space-between" px="xxs" py={2}>
+								<Text size="xs" c="red.4">Tax</Text>
+								<Group gap={4}>
+									<IconCoin size={13} color="var(--mantine-color-red-4)" />
+									<Text size="xs" ff="monospace" c="red.4">
+										-<NumberFormatter
+											thousandSeparator={globalStore.thousandSeparator}
+											decimalSeparator={globalStore.decimalSeparator}
+											value={sortedGroups.reduce((sum, g) => sum + getGroupTaxAmount(g), 0)}
+										/>
+									</Text>
+								</Group>
+							</Group>
 
-						<Box>
+							<Divider my={4} />
+
+							<Group justify="space-between" px="xxs" pb="xs">
+								<Text size="xs" c="green.4" fw="bold">Grand Total</Text>
+								<Group gap={4}>
+									<IconCoin size={13} color="var(--mantine-color-green-4)" />
+									<Text size="xs" ff="monospace" fw="bold" c="green.4">
+										<NumberFormatter
+											thousandSeparator={globalStore.thousandSeparator}
+											decimalSeparator={globalStore.decimalSeparator}
+											value={sortedGroups.reduce((sum, g) => sum + getGroupGrandTotal(g), 0)}
+										/>
+									</Text>
+								</Group>
+							</Group>
+
 							<Button
 								fullWidth
 								leftSection={<IconPlus />}
@@ -551,7 +575,6 @@ export default observer(function Home() {
 								onClick={() => {
 									handleAddGroup();
 								}}
-								mt="xxs"
 							>
 								{m.addGroup()}
 							</Button>
